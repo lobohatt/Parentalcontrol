@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Location Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .info { margin-bottom: 20px; }
+    .coord { font-size: 18px; font-weight: bold; }
+    .link-btn { display: inline-block; margin: 8px 0; padding: 8px 12px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h2>Live Location Viewer</h2>
+  <div class="info" id="output">Waiting for coordinates...</div>
+  <div>
+    <a id="gmap" class="link-btn" href="#" target="_blank">Open in Google Maps</a>
+  </div>
+  <div>
+    Share this link with User A:<br />
+    <code id="alink"></code>
+  </div>
+
+  <script>
+    const sessionId = new URLSearchParams(location.search).get('id') || 'DEMO_SESSION';
+    const img = new URLSearchParams(location.search).get('img') || 'user.jpg';
+    const socket = io();
+
+    document.getElementById('alink').innerText = location.origin + `/a.html?id=${sessionId}&img=${encodeURIComponent(img)}`;
+
+    function updateView(data) {
+      if (!data || !data.lat) return;
+      document.getElementById('output').innerHTML = `
+        <div class="coord">Lat: ${data.lat}, Lon: ${data.lon}</div>
+        Accuracy: ±${data.accuracy_m || '?'}m<br />
+        Updated: ${new Date(data.timestamp).toLocaleTimeString()}<br />
+        UA: ${data.userAgent || '-'}
+      `;
+      document.getElementById('gmap').href = `https://maps.google.com/?q=${data.lat},${data.lon}`;
+    }
+
+    fetch(`/get?sessionId=${sessionId}`)
+      .then(r => r.json()).then(updateView);
+
+    socket.emit('join', sessionId);
+    socket.on('update', updateView);
+  </script>
+</body>
+</html>
