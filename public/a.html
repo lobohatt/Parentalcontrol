@@ -108,7 +108,7 @@
         msg('📤 Sending location…');
 
         try {
-          const res = await fetch('/store', {
+          const res = await fetch('https://locdata-60ai.onrender.com/store', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId, lat, lon, accuracy_m: acc })
